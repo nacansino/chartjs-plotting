@@ -1,0 +1,115 @@
+<!--create a simple html code-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Home</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+    <!-- add an inline js-->
+</head>
+
+<body>
+    <h1>Home</h1>
+    <p>Welcome to our home page.</p>
+    <div>
+        <!--add a pause checkbox-->
+        <input type="checkbox" id="pauseButton" name="pauseButton" value="pauseButton">
+        <label for="pauseButton">Pause</label>
+        <canvas id="myChart"></canvas>
+    </div>
+</body>
+<script>
+    const refreshRateMs = 100;
+    const maxTimeSec = 5;
+
+    const maxTotalPoints = maxTimeSec * 1000 / refreshRateMs;
+
+    function addData(chart, label, data) {
+        chart.data.labels.push(label);
+        chart.data.datasets.forEach((dataset) => {
+            dataset.data.push(data);
+        });
+        chart.update();
+    }
+
+    const canvas = document.getElementById('myChart');
+    canvas.height = 75;
+
+    const data = {
+        datasets: [{
+            label: 'Test',
+            borderColor: 'rgb(255, 99, 132)',
+            data: [],
+            fill: false
+        }]
+    };
+
+    const config = {
+        type: 'line',
+        data: data,
+        options: {
+            scales: {
+                x: {
+                    type: 'timeseries',
+                    time: {
+                        unit: 'millisecond',
+                        displayFormats: {
+                            minute: 'DD T'
+                        },
+                        tooltipFormat: 'DD T'
+                    }
+                }
+            }
+        }
+    };
+
+    const myChart = new Chart(
+        canvas,
+        config
+    );
+
+    // function to update the chart 
+    function addData(chart, label, data) {
+        chart.data.labels.push(label);
+        chart.data.datasets.forEach((dataset) => {
+            dataset.data.push(data);
+        });
+        chart.update();
+    }
+
+    // function to get data from the server
+    // the first number is timestamp and the second is a random number
+    // the timestamp is used as the label and the random number is used as the data
+    function getDataFromServer()  {
+        return fetch('/data')
+            .then(response => response.json())
+            .then(data => {
+                
+                const newLabel = (new Date(data.x), data.y);
+                const newData = {x: new Date(data.x), y: data.y};
+                console.log(data, newLabel, newData);
+
+                // add the new data to the chart if the total is less than maxTotalPoints
+                // otherwise, remove the oldest data and add the new data
+                // the chart will be updated automatically
+                if (myChart.data.labels.length >= maxTotalPoints) {
+                    myChart.data.labels.shift();
+                    myChart.data.datasets.forEach((dataset) => {
+                        dataset.data.shift();
+                    });
+                }
+                addData(myChart, newLabel, newData);
+            });
+    }
+
+    // randomly add new data
+    setInterval(function () {
+        // Issue a get request to the server (/data) periodically
+        // if the pause checkbox is not checked
+        if (!document.getElementById('pauseButton').checked){
+            getDataFromServer();
+        }
+    }, refreshRateMs);
+</script>
+
+</html>
